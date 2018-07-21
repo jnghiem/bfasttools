@@ -1,0 +1,90 @@
+#' Create summary statistic plots from \code{bfastSpatial} output by site
+#'
+#' This function returns a list of plots that summarizes the information from
+#' \code{bfastSpatial} in plots for a given region.
+#'
+#' The plots are: \enumerate{ \item Bar chart of frequency of number of
+#' breakpoints \item Histogram of shifts \item Histogram of slopes \item
+#' Histogram of standard deviations of residuals \item Proportions of all
+#' positive or all negative slopes \item Histogram of breakpoints by date \item
+#' Histogram of slope for cells without significant structural change \item
+#' Histogram of standard deviations of residuals for cells without significant
+#' structural change }
+#'
+#' @inheritParams subset_bfast
+#' @param site A character giving the name of the site for which plots are
+#'   created. The only purpose of this argument is to add to the title of each
+#'   plot.
+#' @return A list of 7 ggplot2 plots.
+#' @examples
+#' \dontrun{
+#' summary_plot(bf_df, "Mojave", raster("C:/Desktop/Mojave.tif"), 1)
+#' }
+#' @import ggplot2
+#' @importFrom dplyr filter mutate group_by summarise arrange semi_join
+#' @importFrom lubridate year month
+#' @export
+summary_plot <- function(bfast_in, site, boundary, template) {
+  results_cleaned <- clean_bfast(bfast_in)
+  #Initializing the list of plots for a site
+  plot_list <- vector("list", 8)
+  points <- extract(create_template_raster(template), boundary, cellnumbers=TRUE, df=TRUE)[,"cell"]
+  by_site <- filter(results_cleaned, no_cell %in% points)
+  if (nrow(by_site)==0) {
+    stop("No matching records in BFAST results.")
+  }
+  brk_sum <- by_site %>%
+    group_by(no_cell) %>%
+    summarise(total_breaks=sum(brk)) %>%
+    as.data.frame()
+  no_breakpoints <- filter(brk_sum, total_breaks==0)
+  insigcells_by_site <- semi_join(by_site, no_breakpoints, by="no_cell") %>% filter(no_brk!=-9999)
+  #Plot 1: Bar chart of frequency of number of breakpoints
+  plot_list[[1]] <- ggplot(brk_sum, aes(total_breaks))+stat_count(fill="white", col="black")+scale_x_continuous(breaks=c(0:5), labels=c(0:5))+geom_text(stat="count", aes(label=..count..), vjust=-1)+labs(title=paste0("Frequency of number of breakpoints, ", site), x="Number of breakpoints", y="Frequency")+annotate("text", x=-Inf, y=Inf, hjust=0, vjust=1, label=paste0("Mean number of breakpoints in cell with significant structural change = ", signif(mean(brk_sum[,"total_breaks"]), 4)))
+  #Plot 2: Histogram of shifts
+  brks_only_by_site <- filter(by_site, brk==1)
+  plot_list[[2]] <- ggplot(brks_only_by_site, aes(shift))+geom_histogram(bins=60, fill="white", col="black")+labs(title=paste0("Histogram of trend shifts, ", site), x="Shift", y="Frequency")+create_annotation(brks_only_by_site[,"shift"])
+  #Plot 3: Histogram of slopes
+  plot_list[[3]] <- ggplot(brks_only_by_site, aes(slope))+geom_histogram(bins=60, fill="white", col="black")+labs(title=paste0("Histogram of trend slopes, ", site), x="Slope", y="Frequency")+create_annotation(brks_only_by_site[,"slope"])
+  #Plot 4: Histogram of standard deviations of residuals
+  plot_list[[4]] <- ggplot(brks_only_by_site, aes(resid.sd))+geom_histogram(bins=60, fill="white", col="black")+labs(title=paste0("Histogram of standard deviations of breakpoint residuals, ", site), x="Standard deviation of breakpoint residual", y="Frequency")+create_annotation(brks_only_by_site[,"resid.sd"], "topright")
+  #Plot 5: All positive or negative slopes
+  positive <- by_site %>%
+    group_by(no_cell) %>%
+    filter(all(slope>0)) %>%
+    as.data.frame()
+  negative <- by_site %>%
+    group_by(no_cell) %>%
+    filter(all(slope<0)) %>%
+    as.data.frame()
+  freqs <- c(length(unique(positive[,"no_cell"])), length(unique(negative[,"no_cell"])))
+  props <- freqs/length(unique(by_site[,"no_cell"]))
+  monotonic_slope_by_site <- data.frame(breakpoint_slope=c("all positive", "all negative"), frequency=freqs, proportion=props)
+  plot_list[[5]] <- ggplot(monotonic_slope_by_site, aes(breakpoint_slope, proportion))+stat_identity(geom="bar", col="black", fill="white")+geom_text(aes(label=paste0("Count = ", frequency)), vjust=-1)+labs(title=paste0("Proportion of cells with significant breakpoints monotonic in trend slope, ", site), x="Breakpoint trend slope behavior", y="Proportion")
+  #Plot 6: Histogram of breakpoints by date
+  years <- brks_only_by_site[,"year"]
+  dates_by_site <- brks_only_by_site %>%
+    mutate(pos_shift=ifelse(shift>0, "Positive shift", "Negative shift")) %>%
+    group_by(year, month, pos_shift) %>%
+    summarise(total_breaks=sum(brk)) %>%
+    as.data.frame()
+  for (k in min(years):max(years)) {
+    for (j in 1:12) {
+      for (l in c("Positive shift", "Negative shift")) {
+        check.date <- filter(dates_by_site, year==k, month==j, pos_shift==l)
+        if (nrow(check.date)==0) {
+          dates_by_site <- rbind(dates_by_site, data.frame(year=k, month=j, pos_shift=l, total_breaks=0))
+        }
+      }
+    }
+  }
+  dates_by_site <- arrange(dates_by_site, year, month, pos_shift) %>%
+    mutate(ym=paste(year, str_pad(month, width=2, side="left", pad="0"), sep="-"))
+  year_label <- paste0(c(min(years):max(years)), "-01")
+  plot_list[[6]] <- ggplot(dates_by_site, aes(ym, total_breaks))+stat_identity(geom="bar", col="black", fill="white")+scale_x_discrete(breaks=year_label, labels=gsub("-01$", "", year_label))+labs(title=paste0("Number of breakpoints over time, ", site), x="Year", y="Number of breakpoints")+facet_grid(pos_shift~.)
+  #Plot 7: Histogram of slope for cells without significant structural change
+  plot_list[[7]] <- ggplot(insigcells_by_site, aes(slope))+geom_histogram(bins=60, col="black", fill="white")+create_annotation(insigcells_by_site[,"slope"])+labs(title=paste0("Histogram of trend slopes (cells without significant structural change), ", site), x="Trend slope", y="Frequency")
+  #Plot 8: Histogram of standard deviations of residuals for cells without significant structural change
+  plot_list[[8]] <- ggplot(insigcells_by_site, aes(resid.sd))+geom_histogram(bins=60, col="black", fill="white")+create_annotation(insigcells_by_site[,"resid.sd"], "topright")+labs(title=paste0("Histogram of standard deviations of residuals (cells without significant structural change), ", site), x="Standard deviation of residual", y="Frequency")
+  return(plot_list)
+}

@@ -1,0 +1,140 @@
+---
+title: "Introduction to bfasttools"
+author: "Justin Nghiem"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to bfasttools}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+library(bfasttools)
+```
+
+#Motivation
+
+The motivation for package `bfasttools` is to perform spatial Breaks for Additive Season and Trend (BFAST) analysis. While there is an existing R package (`bfast`) on CRAN that implements bfast, there is no implementation of BFAST for spatial datasets. This package is meant to provide tools for spatial BFAST analysis, mostly focusing on Moderate Resolution Imaging Spectroradiometer (MODIS) data. This vignette will go step-by-step through a spatial BFAST analysis using a sample dataset provided in the package. Please refer to the `bfast` package for more information on BFAST itself.
+
+#Setting up the environment
+
+You will need to have installed `bfasttools`. This may be done with the command:
+
+```{r eval=FALSE}
+install.packages("devtools")
+devtools::install_github("jnghiem/bfasttools")
+```
+
+Once the package is installed, prepare the R environment by loading the package and the sample dataset.
+
+```{r}
+library(bfasttools)
+data(CA_ndvi)
+```
+
+The `CA_ndvi` dataset is a spatial dataset (specfically, a RasterBrick object) consisting of 421 MODIS raster layers of the normalized difference vegetation index (NDVI) in a small region near the Salton Sea, California. The area covers approximately 266 square kilometers (5040 cells).
+
+One can explore how the layers look with the command `raster::plot(CA_ndvi, i)`, which plots the `i`th layer in the dataset. One way to begin to examine BFAST results is to run the command:
+
+```{r eval=FALSE}
+bfast_interactive(data_layers=ca_ndvi, 12, display=1, impute=TRUE)
+```
+
+`bfast_interactive()` brings up a plot of the region based on `display`. For example, `display=1` means that the first layer from `CA_ndvi` will be plotted. Other choices for the display plot are possible as well. By clicking on a cell on the plot, BFAST will be run and produce a plot in the plotting window. The chosen cell is also printed on the console for reference.
+
+#Processing the raster datasets
+
+Once you have become more familiar with the dataset, you can choose to process it accordingly. Processing entails two goals:
+
+1. remove values that have poor pixel reliability, and 
+1. reaggregate the raster layers based on a function.
+
+##Processing for pixel reliability
+
+Pixel reliability is specific to MODIS data, but this step may still be useful for other remotely sensed products that have quality assurance raster layers. Pixel reliability summaries are provided in raster datasets. Each MODIS raster layer has a corresponding pixel reliabilty layer containing information on the data quality for each cell. The pixel reliability takes on a an integer from -1 to 3; each value flags a different data quality according to the following list.
+
+1. -1: Fill/No Data > Not processed
+1. 0: Good data > Use with confidence
+1. 1: Marginal data > Useful, but look at other QA information
+1. 2: Snow/ice > Target convered with snow/ice
+1. 3: Cloudy > Target not visible, covered with cloud
+
+Since the presence of snow, ice, or clouds obscures the NDVI signal, we want to remove the pixels that are impacted by these atmospheric phenomena. We can use the `process_PR()` function to do this task.
+
+```{r eval=FALSE}
+data(CA_ndvi_pixel_reliability) #reading in pixel reliability raster dataset
+process_PR(data_layers=CA_ndvi, pixel_reliability=CA_ndvi_pixel_reliability, selected_PR=list(exclude=c(NA, 1)), basename="MODIS_NDVI", output_directory="file path to directory")
+```
+
+The key detail is the `selected_PR` argument. This argument accepts a list of length 1 containing a named vector. This vector must be named `include` or `exclude`. `exclude` means that the pixel reliability values in the vector will not be filtered out of `data_layers`. `include` means that those values will be filtered out. By specifying `selected_PR=list(exclude=c(NA, 1))`, we are setting all cells in `CA_ndvi` that have pixel reliability not equal to `0` or `1` to `NA`. Thus, we only keep cells with good or marginal data. We need to specify `NA` instead of `0` in this case because the pixel reliability layers, contrary to the documentation, seem to set good data cells to `NA` instead of `0`.
+
+This command will write a multilayered raster to the file specified by `basename` and `output_directory` by default. Once the file finishes processing, we can move into the next step of pre-processing.
+
+##Re-aggregation
+
+The goal of re-aggregation is to reduce the amount of data that needs to be processed through `bfastSpatial()`. This may be done with the function `reaggregate_by_function()`.
+
+```{r eval=FALSE}
+CA_ndvi_PR_processed <- raster::brick("file path to pixel reliability processed data")
+reaggregate_by_function(data_layers=CA_ndvi_PR_processed, fun=max, dates=monthly_date(2, 2000, 5, 2018, 15), basename="MODIS_NDVI", output_directory="file path to directory")
+```
+
+The code above reads in the data we just processed with `process_PR()` and re-aggregates it to monthly data according to the dates supplied through the argument `dates`. If a different aggregation grouping is needed, passing a number to `dates` will aggregate the data within groups of that size. Like `process_PR()`, this function will write files according to `basename` and `output_directory`. As a side note, the function `monthly_date` is provided in this package to easily create a date vector for monthly data.
+
+#Adjustments for multiple testing
+
+Now that the data has been processed, we need to make an adjustment for multiple testing. Multiple testing occurs when one tests multiple hypotheses (as the name suggests). This is a problem because, by testing more and more hypotheses, the probability of obtaining a false positive increases. We need to control for false positives then by testing at a more significant level. The question is, "What is a suitable significance level?"
+
+The simplest adjustment is the Bonferroni correction. If $\alpha$ is the overall significance level and we want to perform `m` tests, we need to perform each test at the $\frac{\alpha}{m}$ level. The way BFAST works is that it performs a structural change test on every cell, so `m` is equal to the number of cells. However, `m` is necessarily very large in raster datasets. A Bonferroni correction in this case means that cells with statistically significant structural change would need to have p-values very close to 0, a condition which is very restrictive and would likely result in the conclusion that there are no breakpoints anywhere.
+
+A less stringent correction is the Benjamini-Hochberg method, which is the most suitable for this analysis. While the details are beyond the scope of this vignette, there is a key distinction between this method and the Bonferroni correction. With the Bonferroni correction, the only information we needed to know to determine a suitable $\alpha$ for each test is the total number of test $m$. However, the Benjamini-Hochberg method relies on ranking the p-values for all tests. Thus, to find a suitable significance level, one would need to perform the tests first.
+
+This package provides the function `sctest_p()` to find the p-value for the structural change test for all cells.
+
+```{r eval=FALSE}
+data_final <- raster::brick("file path to processed data") #read in the processed data
+pvalues <- sctest_p(data_layers=data_final, obs_per_year=12) #call the sctest_p function
+adjusted <- p.adjust(pvalues[,"sc.p"], "BH") #use the p.adjust function with method "BH" for Benjamini-Hochberg
+total_pvalues <- data.frame(pvalues, adjusted)
+significant_cells <- dplyr::filter(total_pvalues, adjusted<0.05)[,"no_cell"] #a vector of cells with significant adjusted p-values at the 0.05 level
+```
+
+#Performing BFAST analysis
+
+With the above steps completed, we can move into actually performing the BFAST analysis. This will be done with the function `bfastSpatial()`.
+
+```{r eval=FALSE}
+results <- bfastSpatial(data_layers=data_final, dates=monthly_date(2, 2000, 5, 2018, 15), obs_per_year=12, level=significant_cells, impute=TRUE)
+data.table::fwrite(results, "file path to a txt file for output", quote=FALSE, na=NA)
+```
+
+The commands above will execute the spatial BFAST analysis. The most important detail here is that it is not uncommon for `bfastSpatial()` to take days to complete, especially for larger datasets. It is possible that trying to process an entire MODIS tile (4800 rows, 4800 columns, 20000000+ cells) will take a few months at best. Since the processing time tends to be large, it is highly recommded to take advantage of the parallel computing capabilities of the function. The `fwrite()` and `fread()` functions from the `data.table` package are also recommended to save and read the output, respectively, because they are much faster than traditional `read` functions (e.g. `read.csv()`).
+
+The results of `sctest_p` can be passed to `bfastSpatial()` using the `level` argument; it accepts a vector that should contain the cell numbers of the cells that have significant structural change based on the adjusted p-values. However, one may still set the significance level (e.g. 0.05) as usual using `level`.
+
+#Options for further analysis
+
+`bfastSpatial()` provides a great deal of information that may be difficult to mentally process. The `summary_plot()` and `summary_stat()` functions are ways to provie simple summary visualizations and statistics based on the output. One possibility for zonal statistics is to subset the `bfastSpatial()` results by location using `subset_bfast()` and running `summary_stat()` on the resulting data frame. Refer to the individual help pages for more details.
+
+Spatial analyses using the pair correlation function and variogram are available through `pcf_calc()` and `vg_calc()`, respectively. Refer to the individual help pages for more details.
+
+Several functions for post-`bfastSpatial()` work require a RasterLayer with the same properties (e.g. extent, resolution, projection) as the raster dataset used to generate the data frame containing BFAST information. This is necessary because the output of `bfastSpatial()` does not carry any spatial information apart from the cell number, and the cell number must be referenced back to a raster grid to return to the spatial world. The functions that require an additional RasterLayer accept it through the `template` argument. An alternative is to use the function `create_raster_metadata()` to generate an XML file containing all the necessary spatial information. Then, instead of passing a RasterLayer to `template`, one can substitute the character path to the corresponding XML file. The main advantage of this approach is that the XML file summarizes all the necessary spatial data in a much smaller file than that of a raster.
+
+Finally, the `create_raster()` function provides a quick method to visualize a particular statistic. It accepts a data frame with a column referring to the cell number and a column for a variable to be added to a RasterLayer object. For example, one could summarize the data frame from `bfastSpatial()` and turn that data frame into a RasterLayer for visualization (shown below). 
+
+```{r eval=FALSE}
+library(dplyr)
+library(magrittr)
+template <- raster::raster("file path to reference raster")
+total_breakpoints <- results %>%
+  group_by(no_cell) %>%
+  summarise(total_breaks=sum(brk)) %>%
+  as.data.frame()
+ras <- create_raster("no_cell", "total_breaks", total_breakpoints, template) #a RasterLayer showing the total number of breakpoints per cell
+raster::plot(ras) 
+```
