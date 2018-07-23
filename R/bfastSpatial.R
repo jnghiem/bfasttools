@@ -208,7 +208,7 @@ bfastSpatial <- function(data_layers, dates, obs_per_year, processingGeometry=NU
     rle.na <- rle(ts.na)
     if (check.all | (!check.all & check.any & !impute) | impute & (prop.na>nodata_threshold[1] | max(rle.na$lengths[rle.na$values==1])>=nodata_threshold[2])) {
       add.df <- data.frame(no_cell=cell, start_date=NA, brk=NA, no_brk=NA, slope=NA, length=NA, resid.lower=NA, resid.median=NA, resid.upper=NA,
-                          resid.max=NA, resid.max_date=NA, resid.min=NA, resid.min_date=NA, resid.rsq=NA, refit_slope_p=NA, avg.trend=NA, shift=NA)
+                          resid.max=NA, resid.max_date=NA, resid.min=NA, resid.min_date=NA, resid.rsq=NA, resid.sd=NA, refit_slope_p=NA, avg.trend=NA, shift=NA)
     } else {
       if (check.any) {
         ts <- na.interpolation(ts, option="linear")
@@ -223,7 +223,7 @@ bfastSpatial <- function(data_layers, dates, obs_per_year, processingGeometry=NU
       brk <- c(0, rep(1, times=length(bk_index_cleaned)), 0) #indicator field to signal whether a breakpoint occurs at corresponding date
       date <- c(min.date, dates[bk_index_cleaned], max.date) #vector of dates for endpoints and breakpoints (if found)
       no_rows <- length(date)
-      slope <- double(no_rows-1); resid.upper <- slope; resid.lower <- slope; resid.median <- slope; avg.trend <- slope
+      slope <- double(no_rows-1); resid.upper <- slope; resid.lower <- slope; resid.median <- slope; avg.trend <- slope; resid.sd <- slope
       resid.max <- slope; resid.min <- slope; resid.max_date <- slope; resid.min_date <- slope; resid.rsq <- slope; refit_slope_p <- slope
       shift <- c(-9999, rep(0, times=no_rows-2))
       trend <- bf$Tt
@@ -239,11 +239,12 @@ bfastSpatial <- function(data_layers, dates, obs_per_year, processingGeometry=NU
         days.lm <- seq(from=0, to=as.numeric(dates[max(rng)]-dates[min(rng)]), along.with=values.lm)
         trend_model <- lm(values.lm~days.lm)
         slope[k-1] <- trend_model[[1]][[2]]
-        resid.rsq[k-1] <- rsq(values.lm+resids, fitted(trend_model))
         refit_slope_p[k-1] <- summary(lm(resids~days.lm))$coefficients[2,4]
         #Calculating average of trend segment
         avg.trend[k-1] <- mean(values.lm)
         #Calculating residual statistics
+        resid.rsq[k-1] <- rsq(values.lm+resids, fitted(trend_model))
+        resid.sd[k-1] <- sd(resids)
         resid.quant <- quantile(resids)
         resid.upper[k-1] <- resid.quant[[4]]; resid.lower[k-1] <- resid.quant[[2]]; resid.median[k-1] <- resid.quant[[3]]
         resid.max[k-1] <- max(resids); resid.min[k-1] <- min(resids)
@@ -258,7 +259,7 @@ bfastSpatial <- function(data_layers, dates, obs_per_year, processingGeometry=NU
       index <- 1:no_rows
       no_brk <- c(sum(brk), rep(-9999, times=no_rows-1))
       length <- as.numeric(diff(date))
-      add.stats <- rbind(data.frame(slope, length, resid.lower, resid.median, resid.upper, resid.max, resid.max_date, resid.min, resid.min_date, resid.rsq, refit_slope_p, avg.trend, shift), -9999)
+      add.stats <- rbind(data.frame(slope, length, resid.lower, resid.median, resid.upper, resid.max, resid.max_date, resid.min, resid.min_date, resid.rsq, resid.sd, refit_slope_p, avg.trend, shift), -9999)
       start_date <- as.numeric(gsub("-", "", as.character(date))) #convert data type of date to be able to write to file
       add.df <- data.frame(no_cell, start_date, brk, no_brk, add.stats)
     }
