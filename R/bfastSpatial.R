@@ -43,6 +43,8 @@
 #' \code{resid.max_date, resid.min_date}: The date of \code{resid.max} or
 #' \code{resid.min}. \item \code{resid.rsq}: The coefficient of determination
 #' (\emph{R^2}) for the length of the time series from \code{start_date} to the
+#' next breakpoint or endpoint. \item \code{resid.sd}: The standard deviation of
+#' the residuals for the length of the time series from \code{start_date} to the
 #' next breakpoint or endpoint. \item \code{refit_slope_p}: The p-value of the
 #' t-statistics for the slope coefficient for an OLS model of time vs.
 #' residuals. If this value is large, we do not reject the null hypothesis that
