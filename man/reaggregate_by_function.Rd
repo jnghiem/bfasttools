@@ -13,7 +13,7 @@ data. A RasterBrick object is preferable to reduce processing time.}
 
 \item{fun}{A function that returns a single value and has an \code{na.rm}
 argument, which will be set to \code{TRUE}. Examples are \code{mean, sum,
-max, median} and \code{min}.}
+max, median}, and \code{min}.}
 
 \item{dates}{A vector of class Date or a number. If \code{dates} is a date
 vector, the data will be re-aggregated to monthly data by \code{fun}. If

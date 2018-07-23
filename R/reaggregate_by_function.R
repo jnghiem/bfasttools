@@ -15,7 +15,7 @@
 #' @inheritParams process_PR
 #' @param fun A function that returns a single value and has an \code{na.rm}
 #'   argument, which will be set to \code{TRUE}. Examples are \code{mean, sum,
-#'   max, median} and \code{min}.
+#'   max, median}, and \code{min}.
 #' @param dates A vector of class Date or a number. If \code{dates} is a date
 #'   vector, the data will be re-aggregated to monthly data by \code{fun}. If
 #'   \code{dates} is a number, the data will be re-aggregated in groups

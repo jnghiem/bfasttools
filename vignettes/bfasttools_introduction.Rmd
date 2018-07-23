@@ -19,7 +19,11 @@ library(bfasttools)
 
 #Motivation
 
-The motivation for package `bfasttools` is to perform spatial Breaks for Additive Season and Trend (BFAST) analysis. While there is an existing R package (`bfast`) on CRAN that implements bfast, there is no implementation of BFAST for spatial datasets. This package is meant to provide tools for spatial BFAST analysis, mostly focusing on Moderate Resolution Imaging Spectroradiometer (MODIS) data. This vignette will go step-by-step through a spatial BFAST analysis using a sample dataset provided in the package. Please refer to the `bfast` package for more information on BFAST itself.
+The motivation for package `bfasttools` is to perform spatial Breaks for Additive Season and Trend (BFAST) analysis. While there is an existing R package (`bfast`) on CRAN that implements BFAST, there is no implementation of BFAST for spatial datasets. This package is meant to build on that package by providing tools for spatial BFAST analysis, mostly focusing on Moderate Resolution Imaging Spectroradiometer (MODIS) data. This vignette will go step-by-step through a spatial BFAST analysis using a sample dataset provided in the package. Please refer to the `bfast` package for more information on BFAST itself.
+
+#Attribution
+
+A portion of the code for the `bfastSpatial()` function in this package (line 123 to 205) is derived from the code for the `bfast()` function in the `bfast` package (available on CRAN at https://cran.r-project.org/package=bfast); the author of this package takes no credit for those lines. 
 
 #Setting up the environment
 

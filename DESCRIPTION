@@ -2,12 +2,14 @@ Package: bfasttools
 Type: Package
 Title: Tools for BFAST spatial analysis
 Version: 0.1.0
-Author@R: person("Justin", "Nghiem", email="justinnghiem@berkeley.edu", role=c("aut", "cre"))
+Author@R: person("Justin", "Nghiem", email="justinnghiem@berkeley.edu",
+                  role=c("aut", "cre"))
 Description: A collection of functions to perform Breaks for Additive Season and Trend
     (BFAST) analysis on spatial datasets. This package builds on the "bfast" R
-    package (available on CRAN) to extend use to spatial datasets, and has been
-    especially tailored for MODIS data. It takes advantage of parallel computing to
-    more efficiently run code from "bfast" over many cells in raster datasets.
+    package (available on CRAN at https://cran.r-project.org/package=bfast) to
+    extend use to spatial datasets, and has been especially tailored for MODIS data.
+    It takes advantage of parallel computing to more efficiently run code from
+    "bfast" over many cells in raster datasets.
 License: file LICENSE
 Encoding: UTF-8
 LazyData: true
