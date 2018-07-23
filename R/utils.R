@@ -1,4 +1,10 @@
 extractMatches <- function(x, regex) regmatches(x, regexpr(regex, x))
+rsq <- function(observed, modeled) {
+  y_bar <- mean(observed)
+  tss <- sum((observed-y_bar)^2)
+  rss <- sum((observed-modeled)^2)
+  return(1-(rss/tss))
+}
 bf.sc <- function(ts, h, season, type) {
   ti <- time(ts)
   if (season=="harmonic") {

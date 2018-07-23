@@ -4,8 +4,8 @@
 \alias{bfast_interactive}
 \title{Compute BFAST interactively}
 \usage{
-bfast_interactive(data_layers, obs_per_year, display = NULL,
-  add_layers = NULL, cell_number = NULL, impute,
+bfast_interactive(data_layers, obs_per_year, display = 1, add_layers = NULL,
+  cell_number = NULL, new_window = TRUE, impute,
   nodata_threshold = c(0.05, 4), return_bfast = FALSE, ...)
 }
 \arguments{
@@ -28,6 +28,9 @@ plotted for cell selection.}
 \item{cell_number}{A number indicating the cell number through which
 \code{bfast()} should be run from \code{data_layers}. Ignored if
 \code{display} is supplied.}
+
+\item{new_window}{A logical indicating if the BFAST results should appear in
+a new graphics window.}
 
 \item{impute}{A logical indicating whether the function should linearly
 interpolate through time series with missing data if the time series does
@@ -54,6 +57,6 @@ function then runs and plots \code{bfast()} on the time series.
 }
 \examples{
 \dontrun{
-bfast_interactve(mod.brick, monthly=TRUE, display=raster("C:/Desktop/Mojave.tif", add_layers=list(boundary), impute=TRUE, nodata_threshold=c(0.05, 3))
+bfast_interactve(mod.brick, monthly=TRUE, display=raster("C:/Desktop/Mojave.tif", add_layers=list(boundary), impute=TRUE, nodata_threshold=c(0.05, 3), h=0.05, breaks=5, season="harmonic", max.iter=5)
 }
 }

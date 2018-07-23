@@ -31,23 +31,38 @@
 #' start point of the time series. \item \code{slope}: The slope of the trend
 #' after the start or breakpoint in units of value/days. Not valid for the
 #' endpoint. \item \code{length}: The length of time in days until the next
-#' breakpoint or endpoint. \item \code{resid.upper}: The 75\% quantile of
+#' breakpoint or endpoint. \item \code{resid.lower}: The 25\% quantile of
 #' residuals for the length of the time series from \code{start_date} to the
-#' next breakpoint or endpoint. \item \code{resid.lower}: The 25\% quantile of
+#' next breakpoint or endpoint. \item \code{resid.median}: The median of
 #' residuals for the length of the time series from \code{start_date} to the
-#' next breakpoint or endpoint. \item \code{resid.sd}: The standard deviation of
-#' the residuals for the length of the times series from \code{start_date} to
-#' the next breakpoint or endpoint. \item \code{avg.trend}: The mean value in
-#' the trend component of the length of the time series from \code{start_date}
-#' to the next breakpoint or endpoint. \item \code{shift}: The positive or
-#' negative change occurring at a breakpoint. Not valid for start or endpoints.
-#' \item \code{resid.max, resid.min}: The maximum/minimum residual for the
-#' length of the time series from \code{start_date} to the next breakpoint or
-#' endpoint. \item \code{resid.max_date, resid.min_date}: The date of
-#' \code{resid.max} or \code{resid.min}. }
+#' next breakpoint or endpoint. \item \code{resid.upper}: The 75\% quantile of
+#' residuals for the length of the time series from \code{start_date} to the
+#' next breakpoint or endpoint. \item \code{resid.max, resid.min}: The
+#' maximum/minimum residual for the length of the time series from
+#' \code{start_date} to the next breakpoint or endpoint. \item
+#' \code{resid.max_date, resid.min_date}: The date of \code{resid.max} or
+#' \code{resid.min}. \item \code{resid.rsq}: The coefficient of determination
+#' (\emph{R^2}) for the length of the time series from \code{start_date} to the
+#' next breakpoint or endpoint. \item \code{refit_slope_p}: The p-value of the
+#' t-statistics for the slope coefficient for an OLS model of time vs.
+#' residuals. If this value is large, we do not reject the null hypothesis that
+#' this "re-fitted" slope is 0. Note that this is the p-value for a single test,
+#' so multiple testing corrections are necessary to draw conclusions for more
+#' than one test. \item \code{avg.trend}: The mean value in the trend component
+#' of the length of the time series from \code{start_date} to the next
+#' breakpoint or endpoint. \item \code{shift}: The positive or negative change
+#' occurring at a breakpoint. Not valid for start or endpoints.}
 #'
 #' All dates in the returned data frame are in the format "YYYYMMDD." -9999 is a
 #' placeholder value for all values that are invalid for a given field.
+#'
+#' Since this function tends to have long processing times, it is recommended
+#' that the output be saved to a tabular file format to avoid repeated function
+#' calls. However, writing this file and reading it back into R may be
+#' time-consuming because file size tends to be large as well. As a result,
+#' \code{write.csv()} and \code{read.csv()} should not be used. \code{fwrite()}
+#' and \code{fread()} in the \code{data.table} package are much faster
+#' alternatives and should be used instead.
 #'
 #' @inheritParams sctest_p
 #' @param dates A vector of class Date whose entries correspond to the date of
@@ -192,8 +207,8 @@ bfastSpatial <- function(data_layers, dates, obs_per_year, processingGeometry=NU
     prop.na <- sum(ts.na)/length(ts)
     rle.na <- rle(ts.na)
     if (check.all | (!check.all & check.any & !impute) | impute & (prop.na>nodata_threshold[1] | max(rle.na$lengths[rle.na$values==1])>=nodata_threshold[2])) {
-      add.df <- data.frame(no_cell=cell, start_date=NA, brk=NA, no_brk=NA, slope=NA, length=NA, resid.upper=NA, resid.lower=NA, resid.sd=NA,
-                           avg.trend=NA, shift=NA, resid.max=NA, resid.max_date=NA, resid.min=NA, resid.min_date=NA)
+      add.df <- data.frame(no_cell=cell, start_date=NA, brk=NA, no_brk=NA, slope=NA, length=NA, resid.lower=NA, resid.median=NA, resid.upper=NA,
+                          resid.max=NA, resid.max_date=NA, resid.min=NA, resid.min_date=NA, resid.rsq=NA, refit_slope_p=NA, avg.trend=NA, shift=NA)
     } else {
       if (check.any) {
         ts <- na.interpolation(ts, option="linear")
@@ -208,8 +223,8 @@ bfastSpatial <- function(data_layers, dates, obs_per_year, processingGeometry=NU
       brk <- c(0, rep(1, times=length(bk_index_cleaned)), 0) #indicator field to signal whether a breakpoint occurs at corresponding date
       date <- c(min.date, dates[bk_index_cleaned], max.date) #vector of dates for endpoints and breakpoints (if found)
       no_rows <- length(date)
-      slope <- double(no_rows-1); resid.upper <- slope; resid.lower <- slope; resid.sd <- slope; avg.trend <- slope
-      resid.max <- slope; resid.min <- slope; resid.max_date <- slope; resid.min_date <- slope
+      slope <- double(no_rows-1); resid.upper <- slope; resid.lower <- slope; resid.median <- slope; avg.trend <- slope
+      resid.max <- slope; resid.min <- slope; resid.max_date <- slope; resid.min_date <- slope; resid.rsq <- slope; refit_slope_p <- slope
       shift <- c(-9999, rep(0, times=no_rows-2))
       trend <- bf$Tt
       overall_resids <- bf$Nt
@@ -218,17 +233,19 @@ bfastSpatial <- function(data_layers, dates, obs_per_year, processingGeometry=NU
       for (k in 2:no_rows) {
         rng <- bk_index_full[k-1]:bk_index_full[k]
         dates_subset <- dates[rng]
+        resids <- bf$Nt[rng]
         #Calculating the slope
         values.lm <- trend[rng]
         days.lm <- seq(from=0, to=as.numeric(dates[max(rng)]-dates[min(rng)]), along.with=values.lm)
-        slope[k-1] <- lm(values.lm~days.lm)[[1]][[2]]
+        trend_model <- lm(values.lm~days.lm)
+        slope[k-1] <- trend_model[[1]][[2]]
+        resid.rsq[k-1] <- rsq(values.lm+resids, fitted(trend_model))
+        refit_slope_p[k-1] <- summary(lm(resids~days.lm))$coefficients[2,4]
         #Calculating average of trend segment
         avg.trend[k-1] <- mean(values.lm)
         #Calculating residual statistics
-        resids <- bf$Nt[rng]
         resid.quant <- quantile(resids)
-        resid.upper[k-1] <- resid.quant[[3]]; resid.lower[k-1] <- resid.quant[[2]]
-        resid.sd[k-1] <- sd(resids)
+        resid.upper[k-1] <- resid.quant[[4]]; resid.lower[k-1] <- resid.quant[[2]]; resid.median[k-1] <- resid.quant[[3]]
         resid.max[k-1] <- max(resids); resid.min[k-1] <- min(resids)
         resid.max_date[k-1] <- as.numeric(gsub("-", "", as.character(dates_subset[which.max(resids)])))
         resid.min_date[k-1] <- as.numeric(gsub("-", "", as.character(dates_subset[which.min(resids)])))
@@ -241,7 +258,7 @@ bfastSpatial <- function(data_layers, dates, obs_per_year, processingGeometry=NU
       index <- 1:no_rows
       no_brk <- c(sum(brk), rep(-9999, times=no_rows-1))
       length <- as.numeric(diff(date))
-      add.stats <- rbind(data.frame(slope, length, resid.upper, resid.lower, resid.sd, avg.trend, shift, resid.max, resid.max_date, resid.min, resid.min_date), -9999)
+      add.stats <- rbind(data.frame(slope, length, resid.lower, resid.median, resid.upper, resid.max, resid.max_date, resid.min, resid.min_date, resid.rsq, refit_slope_p, avg.trend, shift), -9999)
       start_date <- as.numeric(gsub("-", "", as.character(date))) #convert data type of date to be able to write to file
       add.df <- data.frame(no_cell, start_date, brk, no_brk, add.stats)
     }
@@ -250,7 +267,7 @@ bfastSpatial <- function(data_layers, dates, obs_per_year, processingGeometry=NU
   if (mc.cores>1) {
     cl <- snow::makeCluster(mc.cores, type="SOCK")
     doSNOW::registerDoSNOW(cl)
-    res <- foreach(i=1:length(cells), .combine=rbind, .inorder=FALSE, .packages=c("imputeTS", "strucchange")) %dopar% {
+    res <- foreach(i=1:length(cells), .combine=rbind, .inorder=FALSE, .packages=c("imputeTS", "strucchange"), .export="rsq") %dopar% {
       if ((i %% 20000==0) & !is.null(track_progress)) {
         sink(track_progress, append=TRUE)
         cat(paste("Starting iteration", i, "on", date(), "\n"))

@@ -14,19 +14,21 @@
 #' @param cell_number A number indicating the cell number through which
 #'   \code{bfast()} should be run from \code{data_layers}. Ignored if
 #'   \code{display} is supplied.
+#' @param new_window A logical indicating if the BFAST results should appear in
+#'   a new graphics window.
 #' @param return_bfast A logical indicating if the BFAST results should be
 #'   returned.
 #' @param ... Arguments passed on to \code{bfast}.
 #' @return A bfast object (if \code{return_bfast=TRUE}) or nothing otherwise.
 #' @examples
 #' \dontrun{
-#' bfast_interactve(mod.brick, monthly=TRUE, display=raster("C:/Desktop/Mojave.tif", add_layers=list(boundary), impute=TRUE, nodata_threshold=c(0.05, 3))
+#' bfast_interactve(mod.brick, monthly=TRUE, display=raster("C:/Desktop/Mojave.tif", add_layers=list(boundary), impute=TRUE, nodata_threshold=c(0.05, 3), h=0.05, breaks=5, season="harmonic", max.iter=5)
 #' }
 #' @importFrom imputeTS na.interpolation
 #' @importFrom bfast bfast
 #' @importFrom raster subset
 #' @export
-bfast_interactive <- function(data_layers, obs_per_year, display=NULL, add_layers=NULL, cell_number=NULL, impute, nodata_threshold=c(0.05, 4), return_bfast=FALSE, ...) {
+bfast_interactive <- function(data_layers, obs_per_year, display=1, add_layers=NULL, cell_number=NULL, new_window=TRUE, impute, nodata_threshold=c(0.05, 4), return_bfast=FALSE, ...) {
 
   if (!is.null(cell_number)) {
     ts <- ts(as.vector(data_layers[cell_number]), start=0, frequency=obs_per_year)
@@ -36,11 +38,6 @@ bfast_interactive <- function(data_layers, obs_per_year, display=NULL, add_layer
       } else {
         stop("The time series exceeds missing data thresholds.")
       }
-    }
-    bf <- bfast(ts, ...)
-    plot(bf)
-    if (return_bfast) {
-      return(bf)
     }
   } else if (!is.null(display)) {
     class_display <- class(display)
@@ -55,7 +52,7 @@ bfast_interactive <- function(data_layers, obs_per_year, display=NULL, add_layer
         plot(add_layers[[i]], add=TRUE)
       }
     }
-    cell_info <- click(ras, n=1, xy=TRUE, cell=TRUE)
+    cell_info <- click(display, n=1, id=TRUE, xy=TRUE, cell=TRUE)
     ts <- ts(as.vector(data_layers[cell_info[1,"cell"]]), start=0, frequency=obs_per_year)
     if (impute) {
       if (check_ts(ts, nodata_threshold)) {
@@ -64,12 +61,11 @@ bfast_interactive <- function(data_layers, obs_per_year, display=NULL, add_layer
         stop("The time series exceeds missing data thresholds.")
       }
     }
-    bf <- bfast(ts, ...)
-    plot(bf)
-    if (return_bfast) {
-      return(bf)
-    }
   } else {
     stop("One of display and cell_number must be supplied.")
   }
+  bf <- bfast(ts, ...)
+  if (new_window) dev.new()
+  plot(bf)
+  if (return_bfast) return(bf)
 }

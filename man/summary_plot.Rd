@@ -34,6 +34,9 @@ positive or all negative slopes \item Histogram of breakpoints by date \item
 Histogram of slope for cells without significant structural change \item
 Histogram of standard deviations of residuals for cells without significant
 structural change }
+
+The \code{plot_grid()} function in the \code{cowplot} package arranges plots
+generated from \code{ggplot2} in a grid if a single window view is desired.
 }
 \examples{
 \dontrun{

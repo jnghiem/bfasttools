@@ -11,6 +11,9 @@
 #' Histogram of standard deviations of residuals for cells without significant
 #' structural change }
 #'
+#' The \code{plot_grid()} function in the \code{cowplot} package arranges plots
+#' generated from \code{ggplot2} in a grid if a single window view is desired.
+#'
 #' @inheritParams subset_bfast
 #' @param site A character giving the name of the site for which plots are
 #'   created. The only purpose of this argument is to add to the title of each

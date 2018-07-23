@@ -104,23 +104,38 @@ of breakpoints for a given cell. Only valid for a \code{start_date} for the
 start point of the time series. \item \code{slope}: The slope of the trend
 after the start or breakpoint in units of value/days. Not valid for the
 endpoint. \item \code{length}: The length of time in days until the next
-breakpoint or endpoint. \item \code{resid.upper}: The 75\% quantile of
+breakpoint or endpoint. \item \code{resid.lower}: The 25\% quantile of
 residuals for the length of the time series from \code{start_date} to the
-next breakpoint or endpoint. \item \code{resid.lower}: The 25\% quantile of
+next breakpoint or endpoint. \item \code{resid.median}: The median of
 residuals for the length of the time series from \code{start_date} to the
-next breakpoint or endpoint. \item \code{resid.sd}: The standard deviation of
-the residuals for the length of the times series from \code{start_date} to
-the next breakpoint or endpoint. \item \code{avg.trend}: The mean value in
-the trend component of the length of the time series from \code{start_date}
-to the next breakpoint or endpoint. \item \code{shift}: The positive or
-negative change occurring at a breakpoint. Not valid for start or endpoints.
-\item \code{resid.max, resid.min}: The maximum/minimum residual for the
-length of the time series from \code{start_date} to the next breakpoint or
-endpoint. \item \code{resid.max_date, resid.min_date}: The date of
-\code{resid.max} or \code{resid.min}. }
+next breakpoint or endpoint. \item \code{resid.upper}: The 75\% quantile of
+residuals for the length of the time series from \code{start_date} to the
+next breakpoint or endpoint. \item \code{resid.max, resid.min}: The
+maximum/minimum residual for the length of the time series from
+\code{start_date} to the next breakpoint or endpoint. \item
+\code{resid.max_date, resid.min_date}: The date of \code{resid.max} or
+\code{resid.min}. \item \code{resid.rsq}: The coefficient of determination
+(\emph{R^2}) for the length of the time series from \code{start_date} to the
+next breakpoint or endpoint. \item \code{refit_slope_p}: The p-value of the
+t-statistics for the slope coefficient for an OLS model of time vs.
+residuals. If this value is large, we do not reject the null hypothesis that
+this "re-fitted" slope is 0. Note that this is the p-value for a single test,
+so multiple testing corrections are necessary to draw conclusions for more
+than one test. \item \code{avg.trend}: The mean value in the trend component
+of the length of the time series from \code{start_date} to the next
+breakpoint or endpoint. \item \code{shift}: The positive or negative change
+occurring at a breakpoint. Not valid for start or endpoints.}
 
 All dates in the returned data frame are in the format "YYYYMMDD." -9999 is a
 placeholder value for all values that are invalid for a given field.
+
+Since this function tends to have long processing times, it is recommended
+that the output be saved to a tabular file format to avoid repeated function
+calls. However, writing this file and reading it back into R may be
+time-consuming because file size tends to be large as well. As a result,
+\code{write.csv()} and \code{read.csv()} should not be used. \code{fwrite()}
+and \code{fread()} in the \code{data.table} package are much faster
+alternatives and should be used instead.
 }
 \examples{
 \dontrun{
