@@ -38,7 +38,7 @@ Suggests:
     cowplot (>= 0.9.3),
     knitr,
     rmarkdown
-URL: http://github.com/jnghiem/bfasttools
-BugReports: http://github.com/jnghiem/bfasttools/issues
+URL: https://github.berkeley.edu/justinnghiem/bfasttools
+BugReports: https://github.berkeley.edu/justinnghiem/bfasttools/issues
 RoxygenNote: 6.0.1
 VignetteBuilder: knitr
