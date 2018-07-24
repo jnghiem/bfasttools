@@ -4,7 +4,8 @@
 #' match the specified date criteria. Dates may be specified using Julian date
 #' or traditional date.
 #'
-#' @param files A character vector of files from which to select.
+#' @param files A character vector of absolute file paths to the files from
+#'   which to select.
 #' @param output_directory A character file path to a directory where files will
 #'   be written.
 #' @param output_filename A character for the name of the output multilayered
@@ -23,6 +24,11 @@
 #' @param bylayer A logical indicating if the individual raster outputs should
 #'   remain separate (\code{TRUE}) or combined into a single multilayered raster
 #'   file (\code{FALSE}).
+#' @return Nothing. This function has the side-effect of writing to a file.
+#' @examples
+#' \dontrun{
+#' select_MODIS_by_date(list.files("C:/Desktop/MODIS_files", pattern="\\.tif$", full.names=TRUE), "C:/Desktop/selected_MODIS", c(20, 120))
+#' }
 #' @importFrom stringr str_match
 #' @importFrom dplyr mutate filter
 #' @export

@@ -8,7 +8,8 @@ select_MODIS_by_date(files, output_directory, output_filename = NULL,
   selection, inverse = FALSE, convention = "standard", bylayer = FALSE)
 }
 \arguments{
-\item{files}{A character vector of files from which to select.}
+\item{files}{A character vector of absolute file paths to the files from
+which to select.}
 
 \item{output_directory}{A character file path to a directory where files will
 be written.}
@@ -34,8 +35,16 @@ follow its naming convention).}
 remain separate (\code{TRUE}) or combined into a single multilayered raster
 file (\code{FALSE}).}
 }
+\value{
+Nothing. This function has the side-effect of writing to a file.
+}
 \description{
 This function copies or combines to a multilayer raster MODIS files that
 match the specified date criteria. Dates may be specified using Julian date
 or traditional date.
+}
+\examples{
+\dontrun{
+select_MODIS_by_date(list.files("C:/Desktop/MODIS_files", pattern="\\\\.tif$", full.names=TRUE), "C:/Desktop/selected_MODIS", c(20, 120))
+}
 }
