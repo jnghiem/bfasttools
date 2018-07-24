@@ -75,7 +75,7 @@ A data frame with with columns specified in Details.
 BFAST detects breakpoints in the linear trend component of a time series.
 This function extends the methodology to spatial datasets. This function is
 based on the code for \code{bfast()} in the \code{bfast} package.
-Specifically, the code from line 123 to 205 are derived from the code for
+Specifically, the code from line 123 to 207 are derived from the code for
 \code{bfast()}, and this package's author takes no credit for it.
 }
 \details{

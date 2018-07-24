@@ -3,7 +3,7 @@
 #' BFAST detects breakpoints in the linear trend component of a time series.
 #' This function extends the methodology to spatial datasets. This function is
 #' based on the code for \code{bfast()} in the \code{bfast} package.
-#' Specifically, the code from line 123 to 205 are derived from the code for
+#' Specifically, the code from line 123 to 207 are derived from the code for
 #' \code{bfast()}, and this package's author takes no credit for it.
 #'
 #' This function is quite computationally intensive, and may take on the order
@@ -164,9 +164,11 @@ bfastSpatial <- function(data_layers, dates, obs_per_year, processingGeometry=NU
       Vt <- Yt-St
       if (length(level)==1) {
         p.Vt <- sctest(efp(Vt ~ ti, h=h, type=type))
-        bp.est <- p.Vt$p.value <= level
+        pval <- p.Vt$p.value
+        bp.est <- pval <= level
       } else {
         bp.est <- cell %in% level
+        pval <- NA
       }
 
       if (bp.est) {
@@ -199,7 +201,7 @@ bfastSpatial <- function(data_layers, dates, obs_per_year, processingGeometry=NU
       Wt.bp <- 0             # no seasonal breaks
 
       i <- i+1
-      output <- list(Tt=Tt,St=St,Nt=Yt-Tt-St, Vt=Vt, bp.Vt=bp.Vt, Wt=Wt)
+      output <- list(Tt=Tt,St=St,Nt=Yt-Tt-St, Vt=Vt, bp.Vt=bp.Vt, Wt=Wt, p.value=pval)
     }
     return(output)
   }
@@ -211,8 +213,8 @@ bfastSpatial <- function(data_layers, dates, obs_per_year, processingGeometry=NU
     prop.na <- sum(ts.na)/length(ts)
     rle.na <- rle(ts.na)
     if (check.all | (!check.all & check.any & !impute) | impute & (prop.na>nodata_threshold[1] | max(rle.na$lengths[rle.na$values==1])>=nodata_threshold[2])) {
-      add.df <- data.frame(no_cell=cell, start_date=NA, brk=NA, no_brk=NA, slope=NA, length=NA, resid.lower=NA, resid.median=NA, resid.upper=NA,
-                          resid.max=NA, resid.max_date=NA, resid.min=NA, resid.min_date=NA, resid.rsq=NA, resid.sd=NA, refit_slope_p=NA, avg.trend=NA, shift=NA)
+      add.df <- data.frame(no_cell=cell, start_date=NA, brk=NA, no_brk=NA, sc.p=NA, slope=NA, length=NA, resid.lower=NA, resid.median=NA, resid.upper=NA,
+                          resid.max=NA, resid.max_date=NA, resid.min=NA, resid.min_date=NA, resid.rsq=NA, resid.sd=NA, avg.trend=NA, shift=NA)
     } else {
       if (check.any) {
         ts <- na.interpolation(ts, option="linear")
@@ -227,8 +229,9 @@ bfastSpatial <- function(data_layers, dates, obs_per_year, processingGeometry=NU
       brk <- c(0, rep(1, times=length(bk_index_cleaned)), 0) #indicator field to signal whether a breakpoint occurs at corresponding date
       date <- c(min.date, dates[bk_index_cleaned], max.date) #vector of dates for endpoints and breakpoints (if found)
       no_rows <- length(date)
+      sc.p <- rep(bf$p.value, times=no_rows)
       slope <- double(no_rows-1); resid.upper <- slope; resid.lower <- slope; resid.median <- slope; avg.trend <- slope; resid.sd <- slope
-      resid.max <- slope; resid.min <- slope; resid.max_date <- slope; resid.min_date <- slope; resid.rsq <- slope; refit_slope_p <- slope
+      resid.max <- slope; resid.min <- slope; resid.max_date <- slope; resid.min_date <- slope; resid.rsq <- slope
       shift <- c(-9999, rep(0, times=no_rows-2))
       trend <- bf$Tt
       overall_resids <- bf$Nt
@@ -243,7 +246,6 @@ bfastSpatial <- function(data_layers, dates, obs_per_year, processingGeometry=NU
         days.lm <- seq(from=0, to=as.numeric(dates[max(rng)]-dates[min(rng)]), along.with=values.lm)
         trend_model <- lm(values.lm~days.lm)
         slope[k-1] <- trend_model[[1]][[2]]
-        refit_slope_p[k-1] <- summary(lm(resids~days.lm))$coefficients[2,4]
         #Calculating average of trend segment
         avg.trend[k-1] <- mean(values.lm)
         #Calculating residual statistics
@@ -251,7 +253,7 @@ bfastSpatial <- function(data_layers, dates, obs_per_year, processingGeometry=NU
         resid.sd[k-1] <- sd(resids)
         resid.quant <- quantile(resids)
         resid.upper[k-1] <- resid.quant[[4]]; resid.lower[k-1] <- resid.quant[[2]]; resid.median[k-1] <- resid.quant[[3]]
-        resid.max[k-1] <- max(resids); resid.min[k-1] <- min(resids)
+        resid.max[k-1] <- resid.quant[[5]]; resid.min[k-1] <- resid.quant[[1]]
         resid.max_date[k-1] <- as.numeric(gsub("-", "", as.character(dates_subset[which.max(resids)])))
         resid.min_date[k-1] <- as.numeric(gsub("-", "", as.character(dates_subset[which.min(resids)])))
         #Calculating shift in trend
@@ -263,9 +265,9 @@ bfastSpatial <- function(data_layers, dates, obs_per_year, processingGeometry=NU
       index <- 1:no_rows
       no_brk <- c(sum(brk), rep(-9999, times=no_rows-1))
       length <- as.numeric(diff(date))
-      add.stats <- rbind(data.frame(slope, length, resid.lower, resid.median, resid.upper, resid.max, resid.max_date, resid.min, resid.min_date, resid.rsq, resid.sd, refit_slope_p, avg.trend, shift), -9999)
+      add.stats <- rbind(data.frame(slope, length, resid.lower, resid.median, resid.upper, resid.max, resid.max_date, resid.min, resid.min_date, resid.rsq, resid.sd, avg.trend, shift), -9999)
       start_date <- as.numeric(gsub("-", "", as.character(date))) #convert data type of date to be able to write to file
-      add.df <- data.frame(no_cell, start_date, brk, no_brk, add.stats)
+      add.df <- data.frame(no_cell, start_date, brk, no_brk, sc.p, add.stats)
     }
     return(add.df)
   }

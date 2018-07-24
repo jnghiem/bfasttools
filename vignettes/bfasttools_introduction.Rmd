@@ -23,7 +23,7 @@ The motivation for package `bfasttools` is to perform spatial Breaks for Additiv
 
 #Attribution
 
-A portion of the code for the `bfastSpatial()` function in this package (line 123 to 205) is derived from the code for the `bfast()` function in the `bfast` package (available on CRAN at https://cran.r-project.org/package=bfast); the author of this package takes no credit for those lines. 
+A portion of the code for the `bfastSpatial()` function in this package (line 123 to 207) is derived from the code for the `bfast()` function in the `bfast` package (available on CRAN at https://cran.r-project.org/package=bfast); the author of this package takes no credit for those lines. 
 
 #Setting up the environment
 
