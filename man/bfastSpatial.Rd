@@ -45,10 +45,9 @@ function will not execute and return \code{NA} for all fields.}
 argument is supplied, the function will write to the file the iteration
 number and time every 20,000 iterations through the cells.}
 
-\item{h}{See documentation for \code{strucchange::sctest} for more details.}
+\item{h}{See documentation for \code{strucchange::efp()} for more details.}
 
-\item{season}{See documentation for \code{strucchange::sctest} for more
-details.}
+\item{season}{See documentation for \code{bfast::bfast()} for more details.}
 
 \item{breaks}{An integer indicating the maximum of breaks that should be
 estimated per time series. The default is the maximum number allowed by
@@ -58,8 +57,7 @@ estimated per time series. The default is the maximum number allowed by
 Alternatively, this can be a vector of cells whose structural change
 p-values have been deemed significant (for running with \code{sctest_p}).}
 
-\item{type}{See documentation for \code{strucchange::sctest} for more
-details.}
+\item{type}{See documentation for \code{strucchange::efp()} for more details.}
 
 \item{impute}{A logical indicating whether the function should linearly
 interpolate through time series with missing data if the time series does

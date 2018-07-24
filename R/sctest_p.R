@@ -33,11 +33,9 @@
 #'   function will not execute and return \code{NA} for all fields. The second
 #'   entry is the number of consecutive missing data points above which the
 #'   function will not execute and return \code{NA} for all fields.
-#' @param h See documentation for \code{strucchange::sctest} for more details.
-#' @param season See documentation for \code{strucchange::sctest} for more
-#'   details.
-#' @param type See documentation for \code{strucchange::sctest} for more
-#'   details.
+#' @param h See documentation for \code{strucchange::efp()} for more details.
+#' @param season See documentation for \code{bfast::bfast()} for more details.
+#' @param type See documentation for \code{strucchange::efp()} for more details.
 #' @param impute A logical indicating whether the function should linearly
 #'   interpolate through time series with missing data if the time series does
 #'   not exceed the thresholds defined by \code{nodata_threshold}.

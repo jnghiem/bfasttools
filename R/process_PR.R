@@ -20,6 +20,17 @@
 #' individual raster files so that one can reference back to the date
 #' information.
 #'
+#' The \code{selected_PR} argument requires list containing a single named
+#' numerical vector. The vector must be named either \code{"include"} or
+#' \code{"exclude"} to determine the pixel reliability selection. If the vector
+#' is named \code{"include"}, the numbers in the vector will be
+#' \strong{included} in the pixel reliability values whose corresponding cells
+#' will be filtered out (e.g. set to \code{NA}). If the vector is named
+#' \code{"exclude"}, the numbers in the vector will be \strong{excluded} from
+#' the pixel reliability values that will be used to filter out cells. Any pixel
+#' reliability value that is not in the exclude vector will be used to filter
+#' out cells.
+#'
 #' @param data_layers A RasterStack or RasterBrick object containing the MODIS
 #'   data. A RasterBrick object is preferable to reduce processing time.
 #' @param pixel_reliability A RasterStack or RasterBrick object containing the

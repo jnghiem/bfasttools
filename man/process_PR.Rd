@@ -60,6 +60,17 @@ GeoTIFF is read back into R. The drawback is that any date information
 contained in the layer name will be lost. Thus, it is advisable to keep the
 individual raster files so that one can reference back to the date
 information.
+
+The \code{selected_PR} argument requires list containing a single named
+numerical vector. The vector must be named either \code{"include"} or
+\code{"exclude"} to determine the pixel reliability selection. If the vector
+is named \code{"include"}, the numbers in the vector will be
+\strong{included} in the pixel reliability values whose corresponding cells
+will be filtered out (e.g. set to \code{NA}). If the vector is named
+\code{"exclude"}, the numbers in the vector will be \strong{excluded} from
+the pixel reliability values that will be used to filter out cells. Any pixel
+reliability value that is not in the exclude vector will be used to filter
+out cells.
 }
 \examples{
 \dontrun{

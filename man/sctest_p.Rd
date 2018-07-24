@@ -36,13 +36,11 @@ function will not execute and return \code{NA} for all fields. The second
 entry is the number of consecutive missing data points above which the
 function will not execute and return \code{NA} for all fields.}
 
-\item{h}{See documentation for \code{strucchange::sctest} for more details.}
+\item{h}{See documentation for \code{strucchange::efp()} for more details.}
 
-\item{season}{See documentation for \code{strucchange::sctest} for more
-details.}
+\item{season}{See documentation for \code{bfast::bfast()} for more details.}
 
-\item{type}{See documentation for \code{strucchange::sctest} for more
-details.}
+\item{type}{See documentation for \code{strucchange::efp()} for more details.}
 
 \item{impute}{A logical indicating whether the function should linearly
 interpolate through time series with missing data if the time series does
