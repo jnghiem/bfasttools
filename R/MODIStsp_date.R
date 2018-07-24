@@ -17,8 +17,8 @@
 #' @export
 MODIStsp_date <- function(stack) {
   ras.names <- names(stack)
-  dates.df <- data.frame(jul=gsub("^MOD[[:alnum:]]+_[[:alnum:]]+_", "", ras.names)) %>%
-    mutate(year=as.numeric(extractMatches(jul, "^[[:digit:]]{4}")), num.date=as.numeric(extractMatches(jul, "[[:digit:]]{3}$"))) %>%
-    mutate(date=base::as.Date(num.date, origin=base::as.Date(paste(year-1, "12", "31", sep="-"))))
+  dates.df <- as.data.frame(str_match(basename(files), "^MOD[[:alnum:]]+_[[:alnum:]]+_([[:digit:]]+)_([[:digit:]]+)")) %>%
+    mutate(V2=as.numeric(as.character(V2)), V3=as.numeric(as.character(V3))) %>%
+    mutate(date=base::as.Date(V3, origin=base::as.Date(paste(V2-1, "12", "31", sep="-"))))
   return(dates.df[,"date"])
 }

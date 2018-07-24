@@ -1,4 +1,3 @@
-extractMatches <- function(x, regex) regmatches(x, regexpr(regex, x))
 rsq <- function(observed, modeled) {
   y_bar <- mean(observed)
   tss <- sum((observed-y_bar)^2)
