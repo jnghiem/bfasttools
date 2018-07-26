@@ -88,7 +88,9 @@ CA_ndvi_PR_processed <- raster::brick("file path to pixel reliability processed 
 reaggregate_by_function(data_layers=CA_ndvi_PR_processed, fun=max, dates=monthly_date(2, 2000, 5, 2018, 15), basename="MODIS_NDVI", output_directory="file path to directory")
 ```
 
-The code above reads in the data we just processed with `process_PR()` and re-aggregates it to monthly data according to the dates supplied through the argument `dates`. If a different aggregation grouping is needed, passing a number to `dates` will aggregate the data within groups of that size. Like `process_PR()`, this function will write files according to `basename` and `output_directory`. As a side note, the function `monthly_date` is provided in this package to easily create a date vector for monthly data.
+The code above reads in the data we just processed with `process_PR()` and re-aggregates it to monthly data according to the dates supplied through the argument `dates`. If a different aggregation grouping is needed, passing a number to `dates` will aggregate the data within groups of that size. Like `process_PR()`, this function will write files according to `basename` and `output_directory`.
+
+As a side note, there are three functions in this package that create date vectors for passing to `reaggregate_by_function()` and, as we will see later, `bfastSpatial()`. The function `monthly_date` creates a date vector for monthly data. `MODIStsp_date()` creates a date vector based on MODIS data obtained by the `MODIStsp()` package. Finally, the `generate_MODIS_date()` creates a date vector of MODIS collection dates given a start and an end date. As always, check the individual help pages for more information.
 
 #Adjustments for multiple testing
 
@@ -117,7 +119,9 @@ results <- bfastSpatial(data_layers=data_final, dates=monthly_date(2, 2000, 5, 2
 data.table::fwrite(results, "file path to a txt file for output", quote=FALSE, na=NA)
 ```
 
-The commands above will execute the spatial BFAST analysis. The most important detail here is that it is not uncommon for `bfastSpatial()` to take days to complete, especially for larger datasets. It is possible that trying to process an entire MODIS tile (4800 rows, 4800 columns, 20000000+ cells) will take a few months at best. Since the processing time tends to be large, it is highly recommded to take advantage of the parallel computing capabilities of the function. The `fwrite()` and `fread()` functions from the `data.table` package are also recommended to save and read the output, respectively, because they are much faster than traditional `read` functions (e.g. `read.csv()`).
+The commands above will execute the spatial BFAST analysis. The most important detail here is that it is not uncommon for `bfastSpatial()` to take days to complete, especially for larger datasets. It is possible that trying to process an entire MODIS tile (4800 rows, 4800 columns, 20000000+ cells) will take a few months at best. Since the processing time tends to be large, it is highly recommded to take advantage of the parallel computing capabilities of the function using the `mc.cores` argument. The `fwrite()` and `fread()` functions from the `data.table` package are also recommended to save and read the output, respectively, because they are much faster than traditional `read` functions (e.g. `read.csv()`).
+
+Like `reaggregate_by_function()`, this function requires a vector of dates corresponding to the MODIS observation dates (to pass to `dates`). Again, the functions `monthly_date()`, `MODIStsp_date()`, and `generate_MODIS_date()` may be used to conveniently create the necessary date vector.
 
 The results of `sctest_p` can be passed to `bfastSpatial()` using the `level` argument; it accepts a vector that should contain the cell numbers of the cells that have significant structural change based on the adjusted p-values. However, one may still set the significance level (e.g. 0.05) as usual using `level`.
 
