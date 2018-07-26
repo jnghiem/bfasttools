@@ -33,7 +33,8 @@ Imports:
     gstat (>= 1.1-6),
     raster (>= 2.6-7),
     ggplot2 (>= 3.0.0),
-    bfast (>= 1.5.7)
+    bfast (>= 1.5.7),
+    rgeos (>= 0.3-28)
 Suggests:
     MODIStsp (>= 1.3.6),
     data.table (>= 1.11.4),
