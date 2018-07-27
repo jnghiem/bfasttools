@@ -29,8 +29,8 @@ number.
 }
 \details{
 If an output file is specified, this function will write an ESRI shapefile to
-that file. The cell number will appear as the "layer" field in the attribute
-table.
+that file. The cell number will appear as the "no_cell" field in the
+attribute table.
 }
 \examples{
 \dontrun{
